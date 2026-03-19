@@ -780,3 +780,23 @@ body.login-page {
     zoom: fit;
   }
 }
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .content { padding: 16px !important; }
+  .billing-layout { grid-template-columns: 1fr !important; }
+  .stat-grid { grid-template-columns: 1fr 1fr !important; }
+  .report-kpis { grid-template-columns: 1fr !important; }
+  nav { padding: 0 16px !important; overflow-x: auto; }
+  .nav-links { gap: 2px !important; }
+  .nav-links a { padding: 4px 8px !important; font-size: 11px !important; }
+  .nav-brand { font-size: 14px !important; margin-right: 10px !important; }
+  .form-row { grid-template-columns: 1fr !important; }
+  .form-wrap { padding: 20px 16px !important; }
+  table { font-size: 11px !important; }
+  thead th { padding: 8px !important; font-size: 10px !important; }
+  tbody td { padding: 8px !important; }
+  .btn { padding: 7px 12px !important; font-size: 12px !important; }
+  .page-title { font-size: 18px !important; }
+  .kpi-value { font-size: 22px !important; }
+  .cart-panel { position: static !important; }
+}
