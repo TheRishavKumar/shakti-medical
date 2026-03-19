@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Om Shakti Medical</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark">
+
+{% block navbar %}
+<nav>
+  <a href="{{ url_for('main.dashboard') }}" class="nav-brand">⚕ Shakti<span>Medical</span></a>
+  <div class="nav-links">
+    <a href="{{ url_for('main.dashboard') }}"  {% if request.endpoint == 'main.dashboard'  %}class="active"{% endif %}>Dashboard</a>
+    <a href="{{ url_for('main.medicines') }}"  {% if request.endpoint in ['main.medicines','main.add_medicine'] %}class="active"{% endif %}>Inventory</a>
+    <a href="{{ url_for('main.billing') }}"    {% if request.endpoint == 'main.billing'    %}class="active"{% endif %}>Billing</a>
+    <a href="{{ url_for('main.all_bills') }}"  {% if request.endpoint in ['main.all_bills','main.view_bill'] %}class="active"{% endif %}>Bills</a>
+    <a href="{{ url_for('main.purchases') }}"  {% if request.endpoint == 'main.purchases'  %}class="active"{% endif %}>Purchases</a>
+    <a href="{{ url_for('main.reports') }}"    {% if request.endpoint == 'main.reports'    %}class="active"{% endif %}>Reports</a>
+    <a href="{{ url_for('main.logout') }}" class="nav-logout">Logout</a>
+  </div>
+</nav>
+{% endblock %}
+
+<div class="content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">
+            {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

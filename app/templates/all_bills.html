@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">All <span>Bills</span></h1>
+  <a href="{{ url_for('main.billing') }}" class="btn btn-primary">+ New Bill</a>
+</div>
+
+<div class="search-bar" style="margin-bottom:16px;">
+  <input type="text" id="searchInput" placeholder="Search by invoice or customer..." onkeyup="filterTable()">
+</div>
+
+<div class="table-wrap">
+  <table id="billsTable">
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>Customer</th>
+        <th>Phone</th>
+        <th>Date & Time</th>
+        <th>Discount</th>
+        <th>Total</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bill in bills %}
+      <tr>
+        <td><span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span></td>
+        <td>{{ bill.customer_name or '—' }}</td>
+        <td class="text-muted">{{ bill.customer_phone or '—' }}</td>
+        <td class="text-muted">{{ bill.created_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+        <td>
+          {% if bill.discount_percent > 0 %}
+            <span class="badge yellow">{{ bill.discount_percent|int }}% off</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</td>
+        <td>
+          <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" target="_blank" class="btn btn-pdf btn-sm">PDF</a>
+          <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+                style="display:inline;"
+                onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}? This will restore stock.')">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="icon">🧾</div>
+            <p>No bills yet. <a href="{{ url_for('main.billing') }}" class="text-accent">Create one →</a></p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#billsTable tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">Purchase <span>Management</span></h1>
+</div>
+
+<div style="display:grid; grid-template-columns: 420px 1fr; gap:24px; align-items:start;">
+
+  <!-- ADD PURCHASE FORM -->
+  <div class="form-wrap" style="max-width:100%;">
+    <h2>Record New Purchase</h2>
+    <form method="POST">
+
+      <div class="form-group">
+        <label>Select Medicine *</label>
+        <div class="autocomplete-wrap">
+          <input class="form-control" type="text" id="medicineSearch"
+                 placeholder="Type to search medicine..."
+                 onkeyup="filterMeds()" autocomplete="off" required>
+          <input type="hidden" name="medicine_id" id="selectedMedId" required>
+          <div class="autocomplete-dropdown" id="medDropdown">
+            {% for med in medicines %}
+            <div class="autocomplete-item"
+                 onclick="selectMed('{{ med.id }}', '{{ med.name }}')">
+              {{ med.name }}
+              <span style="color:var(--text-muted); font-size:11px;"> — Stock: {{ med.total_quantity }}</span>
+            </div>
+            {% endfor %}
+            <div class="autocomplete-item" id="noResultMsg"
+                 style="display:none; color:var(--warning); pointer-events:none;">
+              ⚠️ Medicine not found —
+              <a href="{{ url_for('main.add_medicine') }}"
+                 style="color:var(--accent); font-weight:600;">
+                Add it to Inventory first →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Supplier Name *</label>
+        <input class="form-control" type="text" name="supplier" placeholder="Supplier / Distributor" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Purchase Price (₹) *</label>
+          <input class="form-control" type="number" step="0.01" name="purchase_price" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label>Quantity *</label>
+          <input class="form-control" type="number" name="quantity" placeholder="0" min="1" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Batch Number *</label>
+          <input class="form-control" type="text" name="batch_number" placeholder="e.g. BN2024001" required>
+        </div>
+        <div class="form-group">
+          <label>Expiry Date *</label>
+          <input class="form-control" type="date" name="expiry_date" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Add Purchase & Update Stock</button>
+    </form>
+  </div>
+
+  <!-- PURCHASE HISTORY -->
+  <div>
+    <div class="section-header">
+      <span class="section-title">Purchase History</span>
+    </div>
+
+    <div class="search-bar" style="margin-bottom:14px;">
+      <input type="text" id="searchInput" placeholder="Search purchases..." onkeyup="filterTable()">
+    </div>
+
+    <div class="table-wrap">
+      <table id="purchaseTable">
+        <thead>
+          <tr>
+            <th>Medicine</th>
+            <th>Supplier</th>
+            <th>Batch</th>
+            <th>Expiry</th>
+            <th>Qty</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in purchases %}
+          <tr>
+            <td class="fw-bold">{{ p.medicine.name }}</td>
+            <td class="text-muted">{{ p.supplier }}</td>
+            <td><span class="badge blue">{{ p.batch_number or '—' }}</span></td>
+            <td>
+              {% if p.expiry_date %}
+                {{ p.expiry_date.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ p.quantity }}</td>
+            <td>₹{{ "%.2f"|format(p.purchase_price) }}</td>
+            <td class="fw-bold">₹{{ "%.2f"|format(p.purchase_price * p.quantity) }}</td>
+            <td class="text-muted">{{ p.created_at.strftime('%d %b %Y') }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="icon">📥</div>
+                <p>No purchases recorded yet.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function filterMeds() {
+  const val = document.getElementById('medicineSearch').value.toLowerCase();
+  const dropdown = document.getElementById('medDropdown');
+  const items = dropdown.querySelectorAll('.autocomplete-item:not(#noResultMsg)');
+  const noResult = document.getElementById('noResultMsg');
+
+  if (!val) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  dropdown.style.display = 'block';
+  let visibleCount = 0;
+  items.forEach(item => {
+    const show = item.textContent.toLowerCase().includes(val);
+    item.style.display = show ? '' : 'none';
+    if (show) visibleCount++;
+  });
+
+  // Show "not found" message if no medicine matched
+  noResult.style.display = visibleCount === 0 ? '' : 'none';
+}
+
+function selectMed(id, name) {
+  document.getElementById('medicineSearch').value = name;
+  document.getElementById('selectedMedId').value = id;
+  document.getElementById('medDropdown').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.autocomplete-wrap')) {
+    document.getElementById('medDropdown').style.display = 'none';
+  }
+});
+
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#purchaseTable tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">Dashboard <span>Overview</span></h1>
+  <span class="text-muted" style="font-size:12px;">{{ today.strftime('%A, %d %B %Y') }}</span>
+</div>
+
+<!-- KPI Cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="icon">💊</span>
+    <div class="label">Total Medicines</div>
+    <div class="value">{{ total_medicines }}</div>
+    <div class="sub">in inventory</div>
+  </div>
+  <div class="stat-card">
+    <span class="icon">📦</span>
+    <div class="label">Total Stock</div>
+    <div class="value">{{ total_stock }}</div>
+    <div class="sub">units available</div>
+  </div>
+  <div class="stat-card">
+    <span class="icon">💰</span>
+    <div class="label">Stock Value</div>
+    <div class="value">₹{{ total_value }}</div>
+    <div class="sub">at selling price</div>
+  </div>
+  <div class="stat-card">
+    <span class="icon">⚠️</span>
+    <div class="label">Low Stock</div>
+    <div class="value" style="color: var(--warning);">{{ low_stock|length }}</div>
+    <div class="sub">below 10 units</div>
+  </div>
+  <div class="stat-card">
+    <span class="icon">🚫</span>
+    <div class="label">Out of Stock</div>
+    <div class="value" style="color: var(--danger);">{{ out_of_stock|length }}</div>
+    <div class="sub">need restocking</div>
+  </div>
+  <div class="stat-card">
+    <span class="icon">📅</span>
+    <div class="label">Expiring Soon</div>
+    <div class="value" style="color: var(--info);">{{ expiring_soon|length }}</div>
+    <div class="sub">within 30 days</div>
+  </div>
+</div>
+
+<!-- Alerts -->
+{% if expired %}
+<div class="alert-box danger">
+  <h4>🚨 Expired Batches ({{ expired|length }}) — Remove from shelf immediately</h4>
+  <ul>
+    {% for b in expired %}
+    <li><span class="badge-item danger">{{ b.medicine.name }} — Batch {{ b.batch_number }} ({{ b.expiry_date.strftime('%d/%m/%y') }}) — {{ b.quantity }} units</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if expiring_soon %}
+<div class="alert-box warning">
+  <h4>⏰ Expiring Within 30 Days ({{ expiring_soon|length }})</h4>
+  <ul>
+    {% for b in expiring_soon %}
+    <li><span class="badge-item warning">{{ b.medicine.name }} — Batch {{ b.batch_number }} ({{ b.expiry_date.strftime('%d/%m/%y') }}) — {{ b.quantity }} units</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if low_stock %}
+<div class="alert-box warning">
+  <h4>⚠️ Low Stock Medicines</h4>
+  <ul>
+    {% for med in low_stock %}
+    <li><span class="badge-item warning">{{ med.name }} ({{ med.total_quantity }} left)</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if out_of_stock %}
+<div class="alert-box danger">
+  <h4>🚫 Out of Stock</h4>
+  <ul>
+    {% for med in out_of_stock %}
+    <li><span class="badge-item danger">{{ med.name }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Recent Bills -->
+<div class="section-header">
+  <span class="section-title">Recent Transactions</span>
+  <a href="{{ url_for('main.all_bills') }}" class="btn btn-outline btn-sm">View All →</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>Customer</th>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bill in recent_bills %}
+      <tr>
+        <td><span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span></td>
+        <td>{{ bill.customer_name or '—' }}</td>
+        <td>{{ bill.created_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+        <td class="fw-bold">₹{{ "%.2f"|format(bill.total_amount) }}</td>
+        <td>
+          <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm" target="_blank">PDF</a>
+          <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+                style="display:inline;"
+                onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}?')">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">No bills yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

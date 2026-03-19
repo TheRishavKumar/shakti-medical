@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Om Shakti Medical — Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+
+<div class="login-card">
+  <div class="login-logo">⚕️</div>
+  <h1>Shakti Medical</h1>
+  <p class="sub">Medical Store Management System</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}" style="text-align:left; margin-bottom:12px;">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" onsubmit="showLoader()">
+    <input class="form-control" type="text" name="username" placeholder="Username" required autofocus>
+    <input class="form-control" type="password" name="password" placeholder="Password" required>
+    <button type="submit" class="btn btn-primary btn-full" style="margin-top:6px;">Login →</button>
+    <div class="loader" id="loader"></div>
+  </form>
+</div>
+
+<script>
+function showLoader() {
+  document.getElementById("loader").style.display = "block";
+}
+</script>
+</body>
+</html>

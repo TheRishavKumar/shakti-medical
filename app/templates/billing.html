@@ -1,0 +1,226 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">New <span>Bill</span></h1>
+</div>
+
+<form method="POST" id="billingForm">
+
+<div class="billing-layout">
+
+  <!-- RIGHT: Cart Panel -->
+  <div class="cart-panel" style="order:2;">
+    <h3>🛒 Cart</h3>
+
+    <div id="cartItems">
+      <div class="cart-empty" id="cartEmpty">No items added yet</div>
+    </div>
+
+    <hr class="cart-divider">
+
+    <!-- Customer Info -->
+    <div class="form-group" style="margin-bottom:12px;">
+      <label style="font-size:11px;">Customer Name</label>
+      <input class="form-control" type="text" name="customer_name" placeholder="Optional" style="padding:7px 10px;">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label style="font-size:11px;">Phone Number</label>
+      <input class="form-control" type="text" name="customer_phone" placeholder="Optional" style="padding:7px 10px;">
+    </div>
+
+    <div class="form-group" style="margin-bottom:14px;">
+      <label style="font-size:11px;">Discount (%)</label>
+      <input class="form-control" type="number" name="discount" id="discountInput" min="0" max="100" value="0"
+             onchange="updateTotals()" style="padding:7px 10px;">
+    </div>
+
+    <hr class="cart-divider">
+
+    <div class="cart-total-row">
+      <span>Subtotal</span>
+      <span id="subtotalDisplay">₹0.00</span>
+    </div>
+    <div class="cart-total-row" id="discountRow" style="display:none; color:var(--danger);">
+      <span id="discountLabel">Discount (0%)</span>
+      <span id="discountDisplay">-₹0.00</span>
+    </div>
+    <div class="cart-total-row grand">
+      <span>Total</span>
+      <span id="totalDisplay">₹0.00</span>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full" style="margin-top:16px;" id="generateBtn" disabled>
+      Generate Bill →
+    </button>
+  </div>
+
+  <!-- LEFT: Medicine List -->
+  <div style="order:1;">
+    <div class="medicine-list-panel">
+      <div class="panel-header">
+        <h3>💊 Select Medicines</h3>
+        <div class="search-bar" style="max-width:260px;">
+          <input type="text" id="searchInput" placeholder="Search..." onkeyup="filterMedicines()">
+        </div>
+      </div>
+
+      <div id="medicineRows">
+        {% for med in medicines %}
+        <div class="med-row"
+             data-name="{{ med.name|lower }}"
+             data-id="{{ med.id }}"
+             data-price="{{ med.price }}"
+             data-max="{{ med.total_quantity }}">
+
+          <input type="checkbox"
+                 class="med-check"
+                 name="med_ids"
+                 value="{{ med.id }}"
+                 id="check_{{ med.id }}"
+                 onchange="toggleCart(this, {{ med.id }}, '{{ med.name }}', {{ med.price }}, {{ med.total_quantity }})">
+
+          <div class="med-info">
+            <div class="med-name">{{ med.name }}</div>
+            <div class="med-sub">
+              {{ med.company or '' }}
+              {% set nb = med.batches|selectattr('quantity','gt',0)|list %}
+              {% if nb %}
+                &nbsp;·&nbsp; Batch: {{ nb[0].batch_number }}
+                &nbsp;·&nbsp; Exp: {{ nb[0].expiry_date.strftime('%m/%y') }}
+                {% set days = (nb[0].expiry_date - today).days %}
+                {% if days < 0 %}
+                  <span class="badge red" style="font-size:10px;">Expired</span>
+                {% elif days <= 30 %}
+                  <span class="badge yellow" style="font-size:10px;">Exp Soon</span>
+                {% endif %}
+              {% endif %}
+              &nbsp;·&nbsp; Stock: {{ med.total_quantity }}
+            </div>
+          </div>
+
+          <div class="med-price">₹{{ "%.2f"|format(med.price) }}</div>
+
+          <input type="number"
+                 class="qty-input"
+                 id="qty_{{ med.id }}"
+                 name="qty_{{ med.id }}"
+                 min="1"
+                 max="{{ med.total_quantity }}"
+                 value="1"
+                 onchange="updateCartItem({{ med.id }}, '{{ med.name }}', {{ med.price }})">
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="icon">📦</div>
+          <p>No medicines in stock. <a href="{{ url_for('main.add_medicine') }}" class="text-accent">Add stock →</a></p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<script>
+const cartData = {};  // id -> { name, price, qty }
+
+function filterMedicines() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.med-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+function toggleCart(checkbox, id, name, price, maxQty) {
+  if (checkbox.checked) {
+    const qty = parseInt(document.getElementById('qty_' + id).value) || 1;
+    cartData[id] = { name, price, qty, maxQty };
+  } else {
+    delete cartData[id];
+  }
+  renderCart();
+}
+
+function updateCartItem(id, name, price) {
+  if (cartData[id]) {
+    const qty = parseInt(document.getElementById('qty_' + id).value) || 1;
+    cartData[id].qty = qty;
+    renderCart();
+  }
+}
+
+function removeFromCart(id) {
+  delete cartData[id];
+  const cb = document.getElementById('check_' + id);
+  if (cb) cb.checked = false;
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  const empty = document.getElementById('cartEmpty');
+  const btn = document.getElementById('generateBtn');
+  const ids = Object.keys(cartData);
+
+  if (ids.length === 0) {
+    container.innerHTML = '<div class="cart-empty" id="cartEmpty">No items added yet</div>';
+    btn.disabled = true;
+    updateTotals();
+    return;
+  }
+
+  btn.disabled = false;
+  let html = '';
+  ids.forEach(id => {
+    const item = cartData[id];
+    html += `
+      <div class="cart-item">
+        <div>
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-detail">₹${item.price.toFixed(2)} × ${item.qty} = ₹${(item.price * item.qty).toFixed(2)}</div>
+        </div>
+        <button type="button" onclick="removeFromCart(${id})"
+                style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0;">✕</button>
+      </div>`;
+  });
+  container.innerHTML = html;
+  updateTotals();
+}
+
+function updateTotals() {
+  let subtotal = 0;
+  Object.values(cartData).forEach(item => { subtotal += item.price * item.qty; });
+
+  const discountPct = parseFloat(document.getElementById('discountInput').value) || 0;
+  const discountAmt = (discountPct / 100) * subtotal;
+  const total = subtotal - discountAmt;
+
+  document.getElementById('subtotalDisplay').textContent = '₹' + subtotal.toFixed(2);
+  document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
+
+  const discRow = document.getElementById('discountRow');
+  if (discountPct > 0) {
+    discRow.style.display = 'flex';
+    document.getElementById('discountLabel').textContent = 'Discount (' + discountPct + '%)';
+    document.getElementById('discountDisplay').textContent = '-₹' + discountAmt.toFixed(2);
+  } else {
+    discRow.style.display = 'none';
+  }
+}
+
+// Sync qty changes to cart
+document.querySelectorAll('.qty-input').forEach(input => {
+  input.addEventListener('change', function() {
+    const row = this.closest('.med-row');
+    const id = row.dataset.id;
+    if (cartData[id]) {
+      cartData[id].qty = parseInt(this.value) || 1;
+      renderCart();
+    }
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">Business <span>Reports</span></h1>
+</div>
+
+<!-- KPI Cards -->
+<div class="report-kpis">
+  <div class="kpi-card sales">
+    <div class="kpi-label">Total Sales</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(total_sales) }}</div>
+  </div>
+  <div class="kpi-card purchase">
+    <div class="kpi-label">Total Purchases</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(total_purchase) }}</div>
+  </div>
+  <div class="kpi-card profit">
+    <div class="kpi-label">Gross Profit</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(total_profit) }}</div>
+  </div>
+</div>
+
+<!-- Expiry Alerts -->
+{% if expired %}
+<div class="alert-box danger" style="margin-bottom:16px;">
+  <h4>🚨 Expired Batches ({{ expired|length }})</h4>
+  <ul>
+    {% for b in expired %}
+    <li><span class="badge-item danger">{{ b.medicine.name }} — Batch {{ b.batch_number }} (Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }}) — {{ b.quantity }} units</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if expiring_soon %}
+<div class="alert-box warning" style="margin-bottom:20px;">
+  <h4>⏰ Expiring Soon ({{ expiring_soon|length }})</h4>
+  <ul>
+    {% for b in expiring_soon %}
+    <li><span class="badge-item warning">{{ b.medicine.name }} — Batch {{ b.batch_number }} (Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }}) — {{ b.quantity }} units</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Sales History -->
+<div class="section-header">
+  <span class="section-title">Sales History</span>
+  <a href="{{ url_for('main.all_bills') }}" class="btn btn-outline btn-sm">View All Bills →</a>
+</div>
+
+<div class="table-wrap" style="margin-bottom:28px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>Customer</th>
+        <th>Date</th>
+        <th>Discount</th>
+        <th>Total</th>
+        <th>PDF</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bill in bills %}
+      <tr>
+        <td><span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span></td>
+        <td>{{ bill.customer_name or '—' }}</td>
+        <td class="text-muted">{{ bill.created_at.strftime('%d %b %Y') }}</td>
+        <td>
+          {% if bill.discount_percent > 0 %}
+            <span class="badge yellow">{{ bill.discount_percent|int }}%</span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</td>
+        <td>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" target="_blank" class="btn btn-pdf btn-sm">PDF</a>
+          <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+                style="display:inline;"
+                onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}?')">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No sales yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Purchase History -->
+<div class="section-header">
+  <span class="section-title">Purchase History</span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Medicine</th>
+        <th>Supplier</th>
+        <th>Batch</th>
+        <th>Expiry</th>
+        <th>Qty</th>
+        <th>Total Cost</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in purchases %}
+      <tr>
+        <td class="fw-bold">{{ p.medicine.name }}</td>
+        <td class="text-muted">{{ p.supplier }}</td>
+        <td><span class="badge blue">{{ p.batch_number or '—' }}</span></td>
+        <td>{{ p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '—' }}</td>
+        <td>{{ p.quantity }}</td>
+        <td class="fw-bold">₹{{ "%.2f"|format(p.purchase_price * p.quantity) }}</td>
+        <td class="text-muted">{{ p.created_at.strftime('%d %b %Y') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">No purchases yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
