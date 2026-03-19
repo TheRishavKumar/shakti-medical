@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#00d4a0">
   <title>Om Shakti Medical</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="dark">
 
 {% block navbar %}
+
+<!-- TOP NAV — same as before, visible on desktop, simplified on mobile -->
 <nav>
   <a href="{{ url_for('main.dashboard') }}" class="nav-brand">⚕ Shakti<span>Medical</span></a>
   <div class="nav-links">
@@ -20,7 +26,29 @@
     <a href="{{ url_for('main.reports') }}"    {% if request.endpoint == 'main.reports'    %}class="active"{% endif %}>Reports</a>
     <a href="{{ url_for('main.logout') }}" class="nav-logout">Logout</a>
   </div>
+  <!-- Mobile only logout button in top right -->
+  <a href="{{ url_for('main.logout') }}" class="nav-logout-btn">Logout</a>
 </nav>
+
+<!-- BOTTOM NAV — only visible on mobile -->
+<nav class="bottom-nav">
+  <a href="{{ url_for('main.dashboard') }}" {% if request.endpoint == 'main.dashboard' %}class="active"{% endif %}>
+    <span class="icon">🏠</span>Home
+  </a>
+  <a href="{{ url_for('main.medicines') }}" {% if request.endpoint in ['main.medicines','main.add_medicine'] %}class="active"{% endif %}>
+    <span class="icon">💊</span>Stock
+  </a>
+  <a href="{{ url_for('main.billing') }}" {% if request.endpoint == 'main.billing' %}class="active"{% endif %}>
+    <span class="icon">🧾</span>Bill
+  </a>
+  <a href="{{ url_for('main.purchases') }}" {% if request.endpoint == 'main.purchases' %}class="active"{% endif %}>
+    <span class="icon">📦</span>Buy
+  </a>
+  <a href="{{ url_for('main.reports') }}" {% if request.endpoint == 'main.reports' %}class="active"{% endif %}>
+    <span class="icon">📊</span>Reports
+  </a>
+</nav>
+
 {% endblock %}
 
 <div class="content">
