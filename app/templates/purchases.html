@@ -5,127 +5,196 @@
   <h1 class="page-title">Purchase <span>Management</span></h1>
 </div>
 
-<div style="display:grid; grid-template-columns: 420px 1fr; gap:24px; align-items:start;">
+<!-- ADD PURCHASE FORM -->
+<div class="form-wrap" style="margin-bottom:20px;">
+  <h2>Record New Purchase</h2>
+  <form method="POST">
 
-  <!-- ADD PURCHASE FORM -->
-  <div class="form-wrap" style="max-width:100%;">
-    <h2>Record New Purchase</h2>
-    <form method="POST">
-
-      <div class="form-group">
-        <label>Select Medicine *</label>
-        <div class="autocomplete-wrap">
-          <input class="form-control" type="text" id="medicineSearch"
-                 placeholder="Type to search medicine..."
-                 onkeyup="filterMeds()" autocomplete="off" required>
-          <input type="hidden" name="medicine_id" id="selectedMedId" required>
-          <div class="autocomplete-dropdown" id="medDropdown">
-            {% for med in medicines %}
-            <div class="autocomplete-item"
-                 onclick="selectMed('{{ med.id }}', '{{ med.name }}')">
-              {{ med.name }}
-              <span style="color:var(--text-muted); font-size:11px;"> — Stock: {{ med.total_quantity }}</span>
-            </div>
-            {% endfor %}
-            <div class="autocomplete-item" id="noResultMsg"
-                 style="display:none; color:var(--warning); pointer-events:none;">
-              ⚠️ Medicine not found —
-              <a href="{{ url_for('main.add_medicine') }}"
-                 style="color:var(--accent); font-weight:600;">
-                Add it to Inventory first →
-              </a>
-            </div>
+    <div class="form-group">
+      <label>Select Medicine *</label>
+      <div class="autocomplete-wrap">
+        <input class="form-control" type="text" id="medicineSearch"
+               placeholder="Type to search medicine..."
+               onkeyup="filterMeds()" autocomplete="off" required>
+        <input type="hidden" name="medicine_id" id="selectedMedId" required>
+        <div class="autocomplete-dropdown" id="medDropdown">
+          {% for med in medicines %}
+          <div class="autocomplete-item"
+               onclick="selectMed('{{ med.id }}', '{{ med.name }}')">
+            {{ med.name }}
+            <span style="color:var(--text-muted); font-size:11px;"> — Stock: {{ med.total_quantity }}</span>
+          </div>
+          {% endfor %}
+          <div class="autocomplete-item" id="noResultMsg"
+               style="display:none; color:var(--warning); pointer-events:none;">
+            ⚠️ Medicine not found —
+            <a href="{{ url_for('main.medicines') }}"
+               style="color:var(--accent); font-weight:600;">
+              Add it to Inventory first →
+            </a>
           </div>
         </div>
       </div>
+    </div>
 
+    <div class="form-group">
+      <label>Supplier Name *</label>
+      <input class="form-control" type="text" name="supplier" placeholder="Supplier / Distributor" required>
+    </div>
+
+    <div class="form-row">
       <div class="form-group">
-        <label>Supplier Name *</label>
-        <input class="form-control" type="text" name="supplier" placeholder="Supplier / Distributor" required>
+        <label>Purchase Price (₹) *</label>
+        <input class="form-control" type="number" step="0.01" name="purchase_price" placeholder="0.00" required>
       </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Purchase Price (₹) *</label>
-          <input class="form-control" type="number" step="0.01" name="purchase_price" placeholder="0.00" required>
-        </div>
-        <div class="form-group">
-          <label>Quantity *</label>
-          <input class="form-control" type="number" name="quantity" placeholder="0" min="1" required>
-        </div>
+      <div class="form-group">
+        <label>Quantity *</label>
+        <input class="form-control" type="number" name="quantity" placeholder="0" min="1" required>
       </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Batch Number *</label>
-          <input class="form-control" type="text" name="batch_number" placeholder="e.g. BN2024001" required>
-        </div>
-        <div class="form-group">
-          <label>Expiry Date *</label>
-          <input class="form-control" type="date" name="expiry_date" required>
-        </div>
-      </div>
-
-      <button type="submit" class="btn btn-primary btn-full">Add Purchase & Update Stock</button>
-    </form>
-  </div>
-
-  <!-- PURCHASE HISTORY -->
-  <div>
-    <div class="section-header">
-      <span class="section-title">Purchase History</span>
     </div>
 
-    <div class="search-bar" style="margin-bottom:14px;">
-      <input type="text" id="searchInput" placeholder="Search purchases..." onkeyup="filterTable()">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Batch Number *</label>
+        <input class="form-control" type="text" name="batch_number" placeholder="e.g. BN2024001" required>
+      </div>
+      <div class="form-group">
+        <label>Expiry Date *</label>
+        <input class="form-control" type="date" name="expiry_date" required>
+      </div>
     </div>
 
-    <div class="table-wrap">
-      <table id="purchaseTable">
-        <thead>
-          <tr>
-            <th>Medicine</th>
-            <th>Supplier</th>
-            <th>Batch</th>
-            <th>Expiry</th>
-            <th>Qty</th>
-            <th>Unit Cost</th>
-            <th>Total Cost</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in purchases %}
-          <tr>
-            <td class="fw-bold">{{ p.medicine.name }}</td>
-            <td class="text-muted">{{ p.supplier }}</td>
-            <td><span class="badge blue">{{ p.batch_number or '—' }}</span></td>
-            <td>
-              {% if p.expiry_date %}
-                {{ p.expiry_date.strftime('%d/%m/%Y') }}
-              {% else %}—{% endif %}
-            </td>
-            <td>{{ p.quantity }}</td>
-            <td>₹{{ "%.2f"|format(p.purchase_price) }}</td>
-            <td class="fw-bold">₹{{ "%.2f"|format(p.purchase_price * p.quantity) }}</td>
-            <td class="text-muted">{{ p.created_at.strftime('%d %b %Y') }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="8">
-              <div class="empty-state">
-                <div class="icon">📥</div>
-                <p>No purchases recorded yet.</p>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
+    <button type="submit" class="btn btn-primary btn-full">Add Purchase & Update Stock</button>
+  </form>
 </div>
+
+<!-- PURCHASE HISTORY -->
+<div class="section-header">
+  <span class="section-title">Purchase History</span>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search purchases..." onkeyup="filterTable()">
+</div>
+
+<!-- Mobile card view -->
+<div id="mobileList" class="mobile-only">
+  {% for p in purchases %}
+  <div class="purchase-card">
+    <div class="purchase-card-header">
+      <span class="fw-bold">{{ p.medicine.name }}</span>
+      <span class="badge blue">{{ p.batch_number or '—' }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Supplier</span>
+      <span>{{ p.supplier }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Expiry</span>
+      <span>{{ p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '—' }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Qty</span>
+      <span>{{ p.quantity }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Unit Cost</span>
+      <span>₹{{ "%.2f"|format(p.purchase_price) }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Total</span>
+      <span class="fw-bold text-accent">₹{{ "%.2f"|format(p.purchase_price * p.quantity) }}</span>
+    </div>
+    <div class="purchase-card-row">
+      <span class="text-muted">Date</span>
+      <span>{{ p.created_at.strftime('%d %b %Y') }}</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">📥</div>
+    <p>No purchases recorded yet.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table view -->
+<div class="table-wrap desktop-only">
+  <table id="purchaseTable">
+    <thead>
+      <tr>
+        <th>Medicine</th>
+        <th>Supplier</th>
+        <th>Batch</th>
+        <th>Expiry</th>
+        <th>Qty</th>
+        <th>Unit Cost</th>
+        <th>Total Cost</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in purchases %}
+      <tr>
+        <td class="fw-bold">{{ p.medicine.name }}</td>
+        <td class="text-muted">{{ p.supplier }}</td>
+        <td><span class="badge blue">{{ p.batch_number or '—' }}</span></td>
+        <td>{{ p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '—' }}</td>
+        <td>{{ p.quantity }}</td>
+        <td>₹{{ "%.2f"|format(p.purchase_price) }}</td>
+        <td class="fw-bold">₹{{ "%.2f"|format(p.purchase_price * p.quantity) }}</td>
+        <td class="text-muted">{{ p.created_at.strftime('%d %b %Y') }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8">
+          <div class="empty-state">
+            <div class="icon">📥</div>
+            <p>No purchases recorded yet.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+/* Mobile card style */
+.purchase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.purchase-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.purchase-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+/* Show/hide based on screen size */
+.mobile-only  { display: block; }
+.desktop-only { display: none; }
+
+@media (min-width: 768px) {
+  .mobile-only  { display: none; }
+  .desktop-only { display: block; }
+}
+</style>
 
 <script>
 function filterMeds() {
@@ -134,10 +203,7 @@ function filterMeds() {
   const items = dropdown.querySelectorAll('.autocomplete-item:not(#noResultMsg)');
   const noResult = document.getElementById('noResultMsg');
 
-  if (!val) {
-    dropdown.style.display = 'none';
-    return;
-  }
+  if (!val) { dropdown.style.display = 'none'; return; }
 
   dropdown.style.display = 'block';
   let visibleCount = 0;
@@ -146,8 +212,6 @@ function filterMeds() {
     item.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });
-
-  // Show "not found" message if no medicine matched
   noResult.style.display = visibleCount === 0 ? '' : 'none';
 }
 
@@ -165,8 +229,13 @@ document.addEventListener('click', function(e) {
 
 function filterTable() {
   const q = document.getElementById('searchInput').value.toLowerCase();
+  // Filter desktop table
   document.querySelectorAll('#purchaseTable tbody tr').forEach(row => {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  // Filter mobile cards
+  document.querySelectorAll('.purchase-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
 </script>
