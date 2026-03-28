@@ -9,55 +9,172 @@
   <meta name="theme-color" content="#00d4a0">
   <title>Om Shakti Medical</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    /* ── MOBILE: show bottom nav, hide top links ── */
+    @media (max-width: 767px) {
+      .nav-links       { display: none !important; }
+      .nav-logout-btn  { display: inline-block !important; }
+      .bottom-nav      { display: flex !important; }
+      body             { padding-bottom: 70px !important; }
+    }
+
+    /* ── DESKTOP: hide bottom nav, show top links ── */
+    @media (min-width: 768px) {
+      .nav-logout-btn  { display: none !important; }
+      .bottom-nav      { display: none !important; }
+      body             { padding-bottom: 0 !important; }
+    }
+
+    /* ── BOTTOM NAV BASE STYLES ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #111827;
+      border-top: 1px solid #2a3650;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      height: 65px;
+      z-index: 9999;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      text-decoration: none;
+      color: #7a8aaa;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 6px 4px;
+      border-radius: 8px;
+      min-width: 52px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .bottom-nav a .nav-icon {
+      font-size: 22px;
+      line-height: 1;
+      display: block;
+    }
+
+    .bottom-nav a.active {
+      color: #00d4a0;
+      background: rgba(0, 212, 160, 0.12);
+    }
+
+    .bottom-nav a:hover {
+      color: #00d4a0;
+    }
+
+    /* ── MOBILE LOGOUT BUTTON ── */
+    .nav-logout-btn {
+      display: none;
+      color: #ff4d6d;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border: 1px solid rgba(255,77,109,.3);
+      border-radius: 6px;
+      background: rgba(255,77,109,.08);
+      margin-left: auto;
+    }
+  </style>
 </head>
+
 <body class="dark">
 
 {% block navbar %}
 
-<!-- TOP NAV — same as before, visible on desktop, simplified on mobile -->
+<!-- ═══ TOP NAV ═══ -->
 <nav>
   <a href="{{ url_for('main.dashboard') }}" class="nav-brand">⚕ Shakti<span>Medical</span></a>
+
+  <!-- Desktop links -->
   <div class="nav-links">
-    <a href="{{ url_for('main.dashboard') }}"  {% if request.endpoint == 'main.dashboard'  %}class="active"{% endif %}>Dashboard</a>
-    <a href="{{ url_for('main.medicines') }}"  {% if request.endpoint in ['main.medicines','main.add_medicine'] %}class="active"{% endif %}>Inventory</a>
-    <a href="{{ url_for('main.billing') }}"    {% if request.endpoint == 'main.billing'    %}class="active"{% endif %}>Billing</a>
-    <a href="{{ url_for('main.all_bills') }}"  {% if request.endpoint in ['main.all_bills','main.view_bill'] %}class="active"{% endif %}>Bills</a>
-    <a href="{{ url_for('main.purchases') }}"  {% if request.endpoint == 'main.purchases'  %}class="active"{% endif %}>Purchases</a>
-    <a href="{{ url_for('main.reports') }}"    {% if request.endpoint == 'main.reports'    %}class="active"{% endif %}>Reports</a>
+    <a href="{{ url_for('main.dashboard') }}"
+       {% if request.endpoint == 'main.dashboard' %}class="active"{% endif %}>Dashboard</a>
+
+    <a href="{{ url_for('main.medicines') }}"
+       {% if request.endpoint in ['main.medicines','main.add_medicine','main.edit_medicine'] %}class="active"{% endif %}>Inventory</a>
+
+    <a href="{{ url_for('main.billing') }}"
+       {% if request.endpoint == 'main.billing' %}class="active"{% endif %}>Billing</a>
+
+    <a href="{{ url_for('main.all_bills') }}"
+       {% if request.endpoint in ['main.all_bills','main.view_bill'] %}class="active"{% endif %}>Bills</a>
+
+    <a href="{{ url_for('main.purchases') }}"
+       {% if request.endpoint == 'main.purchases' %}class="active"{% endif %}>Purchases</a>
+
+    <a href="{{ url_for('main.reports') }}"
+       {% if request.endpoint == 'main.reports' %}class="active"{% endif %}>Reports</a>
+
     <a href="{{ url_for('main.logout') }}" class="nav-logout">Logout</a>
   </div>
-  <!-- Mobile only logout button in top right -->
+
+  <!-- Mobile logout -->
   <a href="{{ url_for('main.logout') }}" class="nav-logout-btn">Logout</a>
 </nav>
 
-<!-- BOTTOM NAV — only visible on mobile -->
+<!-- ═══ BOTTOM NAV (Mobile only) ═══ -->
 <nav class="bottom-nav">
-  <a href="{{ url_for('main.dashboard') }}" {% if request.endpoint == 'main.dashboard' %}class="active"{% endif %}>
-    <span class="icon">🏠</span>Home
+
+  <a href="{{ url_for('main.dashboard') }}"
+     {% if request.endpoint == 'main.dashboard' %}class="active"{% endif %}>
+    <span class="nav-icon">🏠</span>
+    Home
   </a>
-  <a href="{{ url_for('main.medicines') }}" {% if request.endpoint in ['main.medicines','main.add_medicine'] %}class="active"{% endif %}>
-    <span class="icon">💊</span>Stock
+
+  <a href="{{ url_for('main.medicines') }}"
+     {% if request.endpoint in ['main.medicines','main.add_medicine','main.edit_medicine'] %}class="active"{% endif %}>
+    <span class="nav-icon">💊</span>
+    Stock
   </a>
-  <a href="{{ url_for('main.billing') }}" {% if request.endpoint == 'main.billing' %}class="active"{% endif %}>
-    <span class="icon">🧾</span>Bill
+
+  <a href="{{ url_for('main.billing') }}"
+     {% if request.endpoint == 'main.billing' %}class="active"{% endif %}>
+    <span class="nav-icon">🧾</span>
+    Bill
   </a>
-  <a href="{{ url_for('main.purchases') }}" {% if request.endpoint == 'main.purchases' %}class="active"{% endif %}>
-    <span class="icon">📦</span>Buy
+
+  <a href="{{ url_for('main.purchases') }}"
+     {% if request.endpoint == 'main.purchases' %}class="active"{% endif %}>
+    <span class="nav-icon">📦</span>
+    Buy
   </a>
-  <a href="{{ url_for('main.reports') }}" {% if request.endpoint == 'main.reports' %}class="active"{% endif %}>
-    <span class="icon">📊</span>Reports
+
+  <a href="{{ url_for('main.reports') }}"
+     {% if request.endpoint == 'main.reports' %}class="active"{% endif %}>
+    <span class="nav-icon">📊</span>
+    Reports
   </a>
+
 </nav>
 
 {% endblock %}
 
+<!-- ═══ MAIN CONTENT ═══ -->
 <div class="content">
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-messages">
         {% for category, message in messages %}
           <div class="flash {{ category }}">
-            {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+            {% if category == 'success' %}✅
+            {% elif category == 'danger' %}❌
+            {% elif category == 'warning' %}⚠️
+            {% else %}ℹ️
+            {% endif %}
             {{ message }}
           </div>
         {% endfor %}
@@ -66,6 +183,7 @@
   {% endwith %}
 
   {% block content %}{% endblock %}
+
 </div>
 
 </body>
