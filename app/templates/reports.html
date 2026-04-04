@@ -3,31 +3,115 @@
 
 <div class="page-header">
   <h1 class="page-title">Business <span>Reports</span></h1>
+  <span class="text-muted" style="font-size:11px;">{{ today.strftime('%d %b %Y') }}</span>
 </div>
 
-<!-- KPI Cards -->
-<div class="report-kpis">
+<!-- ══════════════════════════════════════
+     KPI CARDS
+══════════════════════════════════════ -->
+<div class="kpi-grid">
+
   <div class="kpi-card sales">
+    <div class="kpi-icon">💰</div>
     <div class="kpi-label">Total Sales</div>
     <div class="kpi-value">₹{{ "%.2f"|format(total_sales) }}</div>
   </div>
+
   <div class="kpi-card purchase">
+    <div class="kpi-icon">📦</div>
     <div class="kpi-label">Total Purchases</div>
     <div class="kpi-value">₹{{ "%.2f"|format(total_purchase) }}</div>
   </div>
+
   <div class="kpi-card profit">
+    <div class="kpi-icon">📈</div>
     <div class="kpi-label">Gross Profit</div>
     <div class="kpi-value">₹{{ "%.2f"|format(total_profit) }}</div>
   </div>
+
+  <div class="kpi-card today">
+    <div class="kpi-icon">🌅</div>
+    <div class="kpi-label">Today's Sales</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(today_sales) }}</div>
+  </div>
+
+  <div class="kpi-card month">
+    <div class="kpi-icon">📅</div>
+    <div class="kpi-label">This Month</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(this_month_sales) }}</div>
+  </div>
+
+  <div class="kpi-card year">
+    <div class="kpi-icon">🗓️</div>
+    <div class="kpi-label">This Year</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(this_year_sales) }}</div>
+  </div>
+
+  <div class="kpi-card bills">
+    <div class="kpi-icon">🧾</div>
+    <div class="kpi-label">Total Bills</div>
+    <div class="kpi-value">{{ total_bills_count }}</div>
+  </div>
+
+  <div class="kpi-card avg">
+    <div class="kpi-icon">⚡</div>
+    <div class="kpi-label">Avg Bill Value</div>
+    <div class="kpi-value">₹{{ "%.2f"|format(avg_bill_value) }}</div>
+  </div>
+
 </div>
 
-<!-- Expiry Alerts -->
+<!-- ══════════════════════════════════════
+     CHARTS ROW 1
+══════════════════════════════════════ -->
+<div class="charts-row">
+
+  <!-- Last 7 Days Sales -->
+  <div class="chart-card">
+    <div class="chart-title">📊 Last 7 Days Sales</div>
+    <canvas id="dailyChart" height="220"></canvas>
+  </div>
+
+  <!-- Top 5 Medicines -->
+  <div class="chart-card">
+    <div class="chart-title">💊 Top 5 Selling Medicines</div>
+    {% if top_med_labels != '[]' %}
+    <canvas id="topMedChart" height="220"></canvas>
+    {% else %}
+    <div class="empty-state" style="padding:40px 0;">
+      <div class="icon">💊</div>
+      <p>No sales data yet</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     CHART ROW 2 — Monthly Overview
+══════════════════════════════════════ -->
+<div class="chart-card" style="margin-bottom:20px;">
+  <div class="chart-title">📈 Monthly Sales vs Purchase vs Profit (Last 12 Months)</div>
+  <canvas id="monthlyChart" height="120"></canvas>
+</div>
+
+<!-- ══════════════════════════════════════
+     CHART ROW 3 — Bills Count
+══════════════════════════════════════ -->
+<div class="chart-card" style="margin-bottom:20px;">
+  <div class="chart-title">🧾 Monthly Bills Count (Last 12 Months)</div>
+  <canvas id="billCountChart" height="100"></canvas>
+</div>
+
+<!-- ══════════════════════════════════════
+     EXPIRY ALERTS
+══════════════════════════════════════ -->
 {% if expired %}
 <div class="alert-box danger" style="margin-bottom:16px;">
   <h4>🚨 Expired Batches ({{ expired|length }})</h4>
   <ul>
     {% for b in expired %}
-    <li><span class="badge-item danger">{{ b.medicine.name }} — Batch {{ b.batch_number }} (Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }}) — {{ b.quantity }} units</span></li>
+    <li><span class="badge-item danger">{{ b.medicine.name }} — {{ b.batch_number }} — Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }} — {{ b.quantity }} units</span></li>
     {% endfor %}
   </ul>
 </div>
@@ -35,22 +119,52 @@
 
 {% if expiring_soon %}
 <div class="alert-box warning" style="margin-bottom:20px;">
-  <h4>⏰ Expiring Soon ({{ expiring_soon|length }})</h4>
+  <h4>⏰ Expiring Within 30 Days ({{ expiring_soon|length }})</h4>
   <ul>
     {% for b in expiring_soon %}
-    <li><span class="badge-item warning">{{ b.medicine.name }} — Batch {{ b.batch_number }} (Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }}) — {{ b.quantity }} units</span></li>
+    <li><span class="badge-item warning">{{ b.medicine.name }} — {{ b.batch_number }} — Exp: {{ b.expiry_date.strftime('%d/%m/%Y') }} — {{ b.quantity }} units</span></li>
     {% endfor %}
   </ul>
 </div>
 {% endif %}
 
-<!-- Sales History -->
+<!-- ══════════════════════════════════════
+     SALES HISTORY TABLE
+══════════════════════════════════════ -->
 <div class="section-header">
   <span class="section-title">Sales History</span>
-  <a href="{{ url_for('main.all_bills') }}" class="btn btn-outline btn-sm">View All Bills →</a>
+  <a href="{{ url_for('main.all_bills') }}" class="btn btn-outline btn-sm">View All →</a>
 </div>
 
-<div class="table-wrap" style="margin-bottom:28px;">
+<!-- Mobile cards -->
+<div class="mobile-only">
+  {% for bill in bills[:20] %}
+  <div class="bill-card">
+    <div class="bill-card-top">
+      <span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span>
+      <span class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</span>
+    </div>
+    <div class="bill-card-mid">
+      <span class="text-muted" style="font-size:11px;">{{ bill.customer_name or 'Walk-in' }}</span>
+      <span class="text-muted" style="font-size:11px;">{{ bill.created_at.strftime('%d %b %Y') }}</span>
+    </div>
+    <div class="bill-card-actions">
+      <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+      <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
+      <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+            style="display:inline;"
+            onsubmit="return confirm('Delete this invoice?')">
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="icon">🧾</div><p>No sales yet.</p></div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table -->
+<div class="table-wrap desktop-only" style="margin-bottom:28px;">
   <table>
     <thead>
       <tr>
@@ -59,7 +173,7 @@
         <th>Date</th>
         <th>Discount</th>
         <th>Total</th>
-        <th>PDF</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -75,7 +189,8 @@
         </td>
         <td class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</td>
         <td>
-          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" target="_blank" class="btn btn-pdf btn-sm">PDF</a>
+          <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
           <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
                 style="display:inline;"
                 onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}?')">
@@ -90,7 +205,9 @@
   </table>
 </div>
 
-<!-- Purchase History -->
+<!-- ══════════════════════════════════════
+     PURCHASE HISTORY TABLE
+══════════════════════════════════════ -->
 <div class="section-header">
   <span class="section-title">Purchase History</span>
 </div>
@@ -125,5 +242,294 @@
     </tbody>
   </table>
 </div>
+
+<!-- ══════════════════════════════════════
+     STYLES
+══════════════════════════════════════ -->
+<style>
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+}
+
+.kpi-card.sales::after    { background: #00d4a0; }
+.kpi-card.purchase::after { background: #00a8ff; }
+.kpi-card.profit::after   { background: #ffb347; }
+.kpi-card.today::after    { background: #ff6b9d; }
+.kpi-card.month::after    { background: #a78bfa; }
+.kpi-card.year::after     { background: #34d399; }
+.kpi-card.bills::after    { background: #60a5fa; }
+.kpi-card.avg::after      { background: #f59e0b; }
+
+.kpi-icon  { font-size: 20px; margin-bottom: 6px; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.kpi-value { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); line-height: 1; }
+
+/* Charts */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.chart-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+/* Bill cards */
+.bill-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.bill-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 14px; }
+.bill-card-mid { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.bill-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.mobile-only  { display: block; }
+.desktop-only { display: none; }
+
+@media (min-width: 768px) {
+  .kpi-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi-value { font-size: 20px; }
+  .kpi-icon  { font-size: 24px; }
+  .charts-row { grid-template-columns: 1fr 1fr; }
+  .mobile-only  { display: none; }
+  .desktop-only { display: block; }
+}
+</style>
+
+<!-- ══════════════════════════════════════
+     CHART.JS
+══════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// Chart defaults
+Chart.defaults.color = '#7a8aaa';
+Chart.defaults.borderColor = '#2a3650';
+Chart.defaults.font.family = "'DM Sans', Arial, sans-serif";
+
+const accent   = '#00d4a0';
+const blue     = '#00a8ff';
+const warning  = '#ffb347';
+const danger   = '#ff4d6d';
+const purple   = '#a78bfa';
+
+// Data from Flask
+const dailyLabels     = {{ daily_labels | safe }};
+const dailySales      = {{ daily_sales | safe }};
+const monthlyLabels   = {{ monthly_labels | safe }};
+const monthlySales    = {{ monthly_sales | safe }};
+const monthlyPurchase = {{ monthly_purchase | safe }};
+const monthlyProfit   = {{ monthly_profit | safe }};
+const monthlyBillCount= {{ monthly_bill_count | safe }};
+const topMedLabels    = {{ top_med_labels | safe }};
+const topMedValues    = {{ top_med_values | safe }};
+
+// ── 1. Daily Sales Bar Chart ──────────────────
+new Chart(document.getElementById('dailyChart'), {
+  type: 'bar',
+  data: {
+    labels: dailyLabels,
+    datasets: [{
+      label: 'Sales (₹)',
+      data: dailySales,
+      backgroundColor: 'rgba(0, 212, 160, 0.25)',
+      borderColor: accent,
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => '₹' + ctx.parsed.y.toFixed(2)
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#2a3650' },
+        ticks: { callback: v => '₹' + v }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── 2. Top Medicines Horizontal Bar ───────────
+if (topMedLabels.length > 0) {
+  new Chart(document.getElementById('topMedChart'), {
+    type: 'bar',
+    data: {
+      labels: topMedLabels,
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: topMedValues,
+        backgroundColor: [
+          'rgba(0,212,160,0.7)',
+          'rgba(0,168,255,0.7)',
+          'rgba(255,179,71,0.7)',
+          'rgba(167,139,250,0.7)',
+          'rgba(255,107,157,0.7)',
+        ],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '₹' + ctx.parsed.x.toFixed(2)
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: '#2a3650' },
+          ticks: { callback: v => '₹' + v }
+        },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── 3. Monthly Sales/Purchase/Profit Line ─────
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'line',
+  data: {
+    labels: monthlyLabels,
+    datasets: [
+      {
+        label: 'Sales',
+        data: monthlySales,
+        borderColor: accent,
+        backgroundColor: 'rgba(0,212,160,0.1)',
+        borderWidth: 2.5,
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: accent,
+        pointRadius: 4,
+      },
+      {
+        label: 'Purchase',
+        data: monthlyPurchase,
+        borderColor: blue,
+        backgroundColor: 'rgba(0,168,255,0.05)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: false,
+        pointBackgroundColor: blue,
+        pointRadius: 4,
+      },
+      {
+        label: 'Profit',
+        data: monthlyProfit,
+        borderColor: warning,
+        backgroundColor: 'rgba(255,179,71,0.05)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: false,
+        pointBackgroundColor: warning,
+        pointRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        display: true,
+        labels: { usePointStyle: true, padding: 16 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': ₹' + ctx.parsed.y.toFixed(2)
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#2a3650' },
+        ticks: { callback: v => '₹' + v }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── 4. Monthly Bills Count Bar ────────────────
+new Chart(document.getElementById('billCountChart'), {
+  type: 'bar',
+  data: {
+    labels: monthlyLabels,
+    datasets: [{
+      label: 'Bills Generated',
+      data: monthlyBillCount,
+      backgroundColor: 'rgba(167,139,250,0.4)',
+      borderColor: purple,
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.parsed.y + ' bills'
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#2a3650' },
+        ticks: { stepSize: 1 }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
 
 {% endblock %}

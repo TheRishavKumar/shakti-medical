@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
@@ -25,5 +25,21 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+    # ── Error Handlers ──────────────────────────
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template('error.html',
+                               message="Page not found. It may have been moved or deleted."), 404
+
+    @app.errorhandler(500)
+    def server_error(e):
+        return render_template('error.html',
+                               message="Something went wrong on our end. Please restart the app."), 500
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template('error.html',
+                               message="You don't have permission to access this page."), 403
 
     return app

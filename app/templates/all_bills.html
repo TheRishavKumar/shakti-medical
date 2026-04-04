@@ -3,14 +3,50 @@
 
 <div class="page-header">
   <h1 class="page-title">All <span>Bills</span></h1>
-  <a href="{{ url_for('main.billing') }}" class="btn btn-primary">+ New Bill</a>
+  <a href="{{ url_for('main.billing') }}" class="btn btn-primary btn-sm">+ New Bill</a>
 </div>
 
-<div class="search-bar" style="margin-bottom:16px;">
-  <input type="text" id="searchInput" placeholder="Search by invoice or customer..." onkeyup="filterTable()">
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search by invoice or customer..." onkeyup="filterAll()">
 </div>
 
-<div class="table-wrap">
+<!-- Mobile Cards -->
+<div class="mobile-only" id="mobileCards">
+  {% for bill in bills %}
+  <div class="bill-card" data-search="{{ bill.id }} {{ bill.customer_name or '' }} {{ bill.created_at.strftime('%d %b %Y') }}">
+    <div class="bill-card-top">
+      <span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span>
+      <span class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</span>
+    </div>
+    <div class="bill-card-mid">
+      <span class="text-muted" style="font-size:11px;">{{ bill.customer_name or 'Walk-in Customer' }}</span>
+      <span class="text-muted" style="font-size:11px;">{{ bill.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+    </div>
+    {% if bill.discount_percent > 0 %}
+    <div style="margin-bottom:8px;">
+      <span class="badge yellow">{{ bill.discount_percent|int }}% discount applied</span>
+    </div>
+    {% endif %}
+    <div class="bill-card-actions">
+      <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+      <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
+      <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+            style="display:inline;"
+            onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}? Stock will be restored.')">
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🧾</div>
+    <p>No bills yet. <a href="{{ url_for('main.billing') }}" class="text-accent">Create one →</a></p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Desktop Table -->
+<div class="table-wrap desktop-only">
   <table id="billsTable">
     <thead>
       <tr>
@@ -40,10 +76,10 @@
         <td class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</td>
         <td>
           <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
-          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" target="_blank" class="btn btn-pdf btn-sm">PDF</a>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
           <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
                 style="display:inline;"
-                onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}? This will restore stock.')">
+                onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}?')">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
           </form>
         </td>
@@ -53,7 +89,7 @@
         <td colspan="7">
           <div class="empty-state">
             <div class="icon">🧾</div>
-            <p>No bills yet. <a href="{{ url_for('main.billing') }}" class="text-accent">Create one →</a></p>
+            <p>No bills yet.</p>
           </div>
         </td>
       </tr>
@@ -62,9 +98,45 @@
   </table>
 </div>
 
+<style>
+.bill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.bill-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+.bill-card-mid {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.bill-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.mobile-only  { display: block; }
+.desktop-only { display: none; }
+@media (min-width: 768px) {
+  .mobile-only  { display: none; }
+  .desktop-only { display: block; }
+}
+</style>
+
 <script>
-function filterTable() {
+function filterAll() {
   const q = document.getElementById('searchInput').value.toLowerCase();
+
+  // Mobile cards
+  document.querySelectorAll('.bill-card').forEach(card => {
+    card.style.display = card.dataset.search.toLowerCase().includes(q) ? '' : 'none';
+  });
+
+  // Desktop table
   document.querySelectorAll('#billsTable tbody tr').forEach(row => {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
   });

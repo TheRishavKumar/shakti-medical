@@ -124,6 +124,10 @@
          {% if request.endpoint == 'main.reports' %}class="active"{% endif %}>
         Reports
       </a>
+      <a href="{{ url_for('main.backup_list') }}"
+         {% if request.endpoint == 'main.backup_list' %}class="active"{% endif %}>
+        💾 Backup
+      </a>
       <a href="{{ url_for('main.logout') }}" class="nav-logout">
         Logout
       </a>

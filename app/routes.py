@@ -4,6 +4,8 @@ from app.models import User, Medicine, MedicineBatch, Bill, BillItem, Purchase
 from app import db
 from datetime import datetime, date
 import io
+import os
+import sys
 
 main = Blueprint("main", __name__)
 
@@ -269,7 +271,7 @@ def billing():
         bill.discount_amount = round(discount_amount, 2)
 
         db.session.commit()
-
+        flash("Bill generated successfully!", "success")
         return redirect(url_for("main.view_bill", bill_id=bill.id))
 
     return render_template("billing.html", medicines=medicines, today=today)
@@ -320,17 +322,8 @@ def download_bill_pdf(bill_id):
 
         story = []
 
-
-        story.append(Spacer(1, 2 * mm))
-        story.append(Paragraph("Shakti Medical Hall", title_style))
-        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph("Om Shakti Medical", title_style))
         story.append(Paragraph("Medical Store & Pharmacy", sub_style))
-        story.append(Spacer(1, 1 * mm))
-        story.append(Paragraph("Jailhata Daltonganj, Jharkhand", sub_style))
-        story.append(Spacer(1, 2 * mm))
-        story.append(Paragraph("DL No. : JH-PAL161881/161882",
-                               ParagraphStyle('dl', fontSize=8, alignment=TA_LEFT, fontName='Helvetica', spaceAfter=2)))
-        story.append(Spacer(1, 2 * mm))
         story.append(HRFlowable(width="100%", thickness=1.5, color=teal, spaceAfter=6))
 
         # Bill meta
@@ -400,10 +393,8 @@ def download_bill_pdf(bill_id):
 
         story.append(Spacer(1, 6*mm))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
-        story.append(Paragraph(
-            "Note: For errors of oversight in price, please draw our attention. Subject to Daltonganj Jurisdiction. No Branch.",
-            sub_style))
-        story.append(Paragraph("बिकी हुई दवा वापस नही होगी।", sub_style))
+        story.append(Paragraph("Thank you for your purchase! Get well soon.", sub_style))
+        story.append(Paragraph("*This is a computer generated invoice.*", sub_style))
 
         doc.build(story)
         buf.seek(0)
@@ -520,29 +511,168 @@ def purchases():
 @main.route("/reports")
 @login_required
 def reports():
+    from collections import defaultdict
+    import json
+
     bills = Bill.query.order_by(Bill.created_at.desc()).all()
     purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
 
-    total_sales = sum(b.total_amount for b in bills)
-    total_purchase = sum(p.purchase_price * p.quantity for p in purchases)
-    total_profit = total_sales - total_purchase
-
     today = date.today()
-    expiring_batches = (MedicineBatch.query
-                        .filter(MedicineBatch.quantity > 0)
-                        .all())
+
+    # ── Totals ──────────────────────────────────
+    total_sales    = sum(b.total_amount for b in bills)
+    total_purchase = sum(p.purchase_price * p.quantity for p in purchases)
+    total_profit   = total_sales - total_purchase
+
+    # ── Today / This Month / This Year ──────────
+    today_sales = sum(b.total_amount for b in bills
+                      if b.created_at.date() == today)
+
+    this_month_sales = sum(b.total_amount for b in bills
+                           if b.created_at.year == today.year
+                           and b.created_at.month == today.month)
+
+    this_year_sales = sum(b.total_amount for b in bills
+                          if b.created_at.year == today.year)
+
+    total_bills_count = len(bills)
+    avg_bill_value = round(total_sales / total_bills_count, 2) if total_bills_count > 0 else 0
+
+    # ── Last 7 Days Sales Chart ──────────────────
+    daily_labels = []
+    daily_sales  = []
+    for i in range(6, -1, -1):
+        from datetime import timedelta
+        d = today - timedelta(days=i)
+        label = d.strftime('%d %b')
+        amount = sum(b.total_amount for b in bills
+                     if b.created_at.date() == d)
+        daily_labels.append(label)
+        daily_sales.append(round(amount, 2))
+
+    # ── Last 12 Months Sales Chart ───────────────
+    monthly_labels  = []
+    monthly_sales   = []
+    monthly_purchase= []
+    monthly_profit  = []
+
+    for i in range(11, -1, -1):
+        # Calculate month and year
+        month = today.month - i
+        year  = today.year
+        while month <= 0:
+            month += 12
+            year  -= 1
+
+        import calendar
+        label = f"{calendar.month_abbr[month]} {year}"
+
+        m_sales = sum(b.total_amount for b in bills
+                      if b.created_at.year == year
+                      and b.created_at.month == month)
+
+        m_purchase = sum(p.purchase_price * p.quantity for p in purchases
+                         if p.created_at.year == year
+                         and p.created_at.month == month)
+
+        m_profit = m_sales - m_purchase
+
+        monthly_labels.append(label)
+        monthly_sales.append(round(m_sales, 2))
+        monthly_purchase.append(round(m_purchase, 2))
+        monthly_profit.append(round(m_profit, 2))
+
+    # ── Top 5 Selling Medicines ──────────────────
+    medicine_sales = defaultdict(float)
+    medicine_qty   = defaultdict(int)
+
+    for bill in bills:
+        for item in bill.items:
+            medicine_sales[item.medicine.name] += item.price * item.quantity
+            medicine_qty[item.medicine.name]   += item.quantity
+
+    top_medicines = sorted(medicine_sales.items(),
+                           key=lambda x: x[1], reverse=True)[:5]
+    top_med_labels = [m[0] for m in top_medicines]
+    top_med_values = [round(m[1], 2) for m in top_medicines]
+
+    # ── Monthly Bills Count ──────────────────────
+    monthly_bill_count = []
+    for i in range(11, -1, -1):
+        month = today.month - i
+        year  = today.year
+        while month <= 0:
+            month += 12
+            year  -= 1
+        count = sum(1 for b in bills
+                    if b.created_at.year == year
+                    and b.created_at.month == month)
+        monthly_bill_count.append(count)
+
+    # ── Expiry Alerts ────────────────────────────
+    expiring_batches = MedicineBatch.query.filter(MedicineBatch.quantity > 0).all()
     expiring_soon = [b for b in expiring_batches
                      if 0 <= (b.expiry_date - today).days <= 30]
     expired = [b for b in expiring_batches if b.expiry_date < today]
 
     return render_template(
         "reports.html",
+        # Totals
         total_sales=total_sales,
         total_purchase=total_purchase,
         total_profit=total_profit,
+        today_sales=today_sales,
+        this_month_sales=this_month_sales,
+        this_year_sales=this_year_sales,
+        total_bills_count=total_bills_count,
+        avg_bill_value=avg_bill_value,
+        # Chart data
+        daily_labels=json.dumps(daily_labels),
+        daily_sales=json.dumps(daily_sales),
+        monthly_labels=json.dumps(monthly_labels),
+        monthly_sales=json.dumps(monthly_sales),
+        monthly_purchase=json.dumps(monthly_purchase),
+        monthly_profit=json.dumps(monthly_profit),
+        monthly_bill_count=json.dumps(monthly_bill_count),
+        top_med_labels=json.dumps(top_med_labels),
+        top_med_values=json.dumps(top_med_values),
+        # Tables
         bills=bills,
         purchases=purchases,
         expiring_soon=expiring_soon,
         expired=expired,
         today=today,
     )
+
+
+# ─────────────────────────────────────────────
+#  BACKUP
+# ─────────────────────────────────────────────
+
+@main.route("/backup", methods=["POST"])
+@login_required
+def backup():
+    try:
+        from backup import backup_database, get_backup_list, get_backup_dir
+        backup_path = backup_database()
+        if backup_path:
+            backup_name = os.path.basename(backup_path)
+            flash(f"✅ Backup created successfully! File: {backup_name}", "success")
+        else:
+            flash("⚠️ Backup skipped — database not found yet.", "warning")
+    except Exception as e:
+        flash(f"❌ Backup failed: {str(e)}", "danger")
+    return redirect(url_for("main.dashboard"))
+
+
+@main.route("/backup/list")
+@login_required
+def backup_list():
+    try:
+        from backup import get_backup_list, get_backup_dir
+        backups = get_backup_list()
+        backup_dir = get_backup_dir()
+    except:
+        backups = []
+        backup_dir = ""
+    return render_template("backup_list.html", backups=backups, backup_dir=backup_dir)

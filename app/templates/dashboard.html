@@ -3,14 +3,14 @@
 
 <div class="page-header">
   <h1 class="page-title">Dashboard <span>Overview</span></h1>
-  <span class="text-muted" style="font-size:12px;">{{ today.strftime('%A, %d %B %Y') }}</span>
+  <span class="text-muted" style="font-size:11px;">{{ today.strftime('%d %b %Y') }}</span>
 </div>
 
 <!-- KPI Cards -->
 <div class="stat-grid">
   <div class="stat-card">
     <span class="icon">💊</span>
-    <div class="label">Total Medicines</div>
+    <div class="label">Medicines</div>
     <div class="value">{{ total_medicines }}</div>
     <div class="sub">in inventory</div>
   </div>
@@ -18,30 +18,30 @@
     <span class="icon">📦</span>
     <div class="label">Total Stock</div>
     <div class="value">{{ total_stock }}</div>
-    <div class="sub">units available</div>
+    <div class="sub">units</div>
   </div>
   <div class="stat-card">
     <span class="icon">💰</span>
     <div class="label">Stock Value</div>
-    <div class="value">₹{{ total_value }}</div>
-    <div class="sub">at selling price</div>
+    <div class="value" style="font-size:16px;">₹{{ total_value }}</div>
+    <div class="sub">selling price</div>
   </div>
   <div class="stat-card">
     <span class="icon">⚠️</span>
     <div class="label">Low Stock</div>
-    <div class="value" style="color: var(--warning);">{{ low_stock|length }}</div>
+    <div class="value" style="color:var(--warning);">{{ low_stock|length }}</div>
     <div class="sub">below 10 units</div>
   </div>
   <div class="stat-card">
     <span class="icon">🚫</span>
     <div class="label">Out of Stock</div>
-    <div class="value" style="color: var(--danger);">{{ out_of_stock|length }}</div>
-    <div class="sub">need restocking</div>
+    <div class="value" style="color:var(--danger);">{{ out_of_stock|length }}</div>
+    <div class="sub">need restock</div>
   </div>
   <div class="stat-card">
     <span class="icon">📅</span>
     <div class="label">Expiring Soon</div>
-    <div class="value" style="color: var(--info);">{{ expiring_soon|length }}</div>
+    <div class="value" style="color:var(--info);">{{ expiring_soon|length }}</div>
     <div class="sub">within 30 days</div>
   </div>
 </div>
@@ -49,10 +49,10 @@
 <!-- Alerts -->
 {% if expired %}
 <div class="alert-box danger">
-  <h4>🚨 Expired Batches ({{ expired|length }}) — Remove from shelf immediately</h4>
+  <h4>🚨 Expired Batches ({{ expired|length }}) — Remove immediately</h4>
   <ul>
     {% for b in expired %}
-    <li><span class="badge-item danger">{{ b.medicine.name }} — Batch {{ b.batch_number }} ({{ b.expiry_date.strftime('%d/%m/%y') }}) — {{ b.quantity }} units</span></li>
+    <li><span class="badge-item danger">{{ b.medicine.name }} · {{ b.batch_number }} · {{ b.expiry_date.strftime('%d/%m/%y') }} · {{ b.quantity }} units</span></li>
     {% endfor %}
   </ul>
 </div>
@@ -63,7 +63,7 @@
   <h4>⏰ Expiring Within 30 Days ({{ expiring_soon|length }})</h4>
   <ul>
     {% for b in expiring_soon %}
-    <li><span class="badge-item warning">{{ b.medicine.name }} — Batch {{ b.batch_number }} ({{ b.expiry_date.strftime('%d/%m/%y') }}) — {{ b.quantity }} units</span></li>
+    <li><span class="badge-item warning">{{ b.medicine.name }} · {{ b.batch_number }} · {{ b.expiry_date.strftime('%d/%m/%y') }}</span></li>
     {% endfor %}
   </ul>
 </div>
@@ -71,7 +71,7 @@
 
 {% if low_stock %}
 <div class="alert-box warning">
-  <h4>⚠️ Low Stock Medicines</h4>
+  <h4>⚠️ Low Stock</h4>
   <ul>
     {% for med in low_stock %}
     <li><span class="badge-item warning">{{ med.name }} ({{ med.total_quantity }} left)</span></li>
@@ -97,7 +97,38 @@
   <a href="{{ url_for('main.all_bills') }}" class="btn btn-outline btn-sm">View All →</a>
 </div>
 
-<div class="table-wrap">
+<!-- Mobile cards -->
+<div class="mobile-only">
+  {% for bill in recent_bills %}
+  <div class="bill-card">
+    <div class="bill-card-top">
+      <span class="text-accent fw-bold">#{{ "%05d"|format(bill.id) }}</span>
+      <span class="fw-bold text-accent">₹{{ "%.2f"|format(bill.total_amount) }}</span>
+    </div>
+    <div class="bill-card-mid">
+      <span class="text-muted" style="font-size:11px;">{{ bill.customer_name or 'Walk-in Customer' }}</span>
+      <span class="text-muted" style="font-size:11px;">{{ bill.created_at.strftime('%d %b %Y') }}</span>
+    </div>
+    <div class="bill-card-actions">
+      <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
+      <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
+      <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
+            style="display:inline;"
+            onsubmit="return confirm('Delete this invoice?')">
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🧾</div>
+    <p>No bills yet. <a href="{{ url_for('main.billing') }}" class="text-accent">Create one →</a></p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table -->
+<div class="table-wrap desktop-only">
   <table>
     <thead>
       <tr>
@@ -105,7 +136,7 @@
         <th>Customer</th>
         <th>Date</th>
         <th>Amount</th>
-        <th>Action</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -117,7 +148,7 @@
         <td class="fw-bold">₹{{ "%.2f"|format(bill.total_amount) }}</td>
         <td>
           <a href="{{ url_for('main.view_bill', bill_id=bill.id) }}" class="btn btn-outline btn-sm">View</a>
-          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm" target="_blank">PDF</a>
+          <a href="{{ url_for('main.download_bill_pdf', bill_id=bill.id) }}" class="btn btn-pdf btn-sm">PDF</a>
           <form method="POST" action="{{ url_for('main.delete_bill', bill_id=bill.id) }}"
                 style="display:inline;"
                 onsubmit="return confirm('Delete Invoice #{{ '%05d'|format(bill.id) }}?')">
@@ -131,5 +162,37 @@
     </tbody>
   </table>
 </div>
+
+<style>
+.bill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.bill-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.bill-card-mid {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.bill-card-actions {
+  display: flex;
+  gap: 8px;
+}
+.mobile-only  { display: block; }
+.desktop-only { display: none; }
+@media (min-width: 768px) {
+  .mobile-only  { display: none; }
+  .desktop-only { display: block; }
+}
+</style>
 
 {% endblock %}

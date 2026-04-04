@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error — Shakti Medical</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .error-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .error-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+    }
+    .error-icon { font-size: 60px; margin-bottom: 16px; }
+    .error-code { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; color: var(--danger); margin-bottom: 8px; }
+    .error-msg  { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+  </style>
+</head>
+<body class="dark">
+  <div class="error-page">
+    <div class="error-box">
+      <div class="error-icon">⚠️</div>
+      <div class="error-code">Oops!</div>
+      <div class="error-msg">{{ message or "Something went wrong. Please try again." }}</div>
+      <a href="/" class="btn btn-primary btn-full">Go to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

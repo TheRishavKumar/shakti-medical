@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">💾 <span>Backup</span> Manager</h1>
+</div>
+
+<!-- Backup Now -->
+<div class="form-wrap" style="margin-bottom:20px; max-width:100%;">
+  <h2>Create Backup</h2>
+  <p class="text-muted" style="font-size:13px; margin-bottom:16px;">
+    Creates a copy of all your data — medicines, bills, purchases, everything.
+    Backups are saved in the <strong>backups</strong> folder next to the app.
+  </p>
+
+  <div style="background:var(--surface2); border-radius:8px; padding:14px; margin-bottom:16px; font-size:12px;">
+    <div style="margin-bottom:6px;">📁 <strong>Backup Location:</strong></div>
+    <div class="text-accent" style="word-break:break-all;">{{ backup_dir }}</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('main.backup') }}">
+    <button type="submit" class="btn btn-primary">
+      💾 Create Backup Now
+    </button>
+  </form>
+</div>
+
+<!-- Backup List -->
+<div class="section-header">
+  <span class="section-title">Available Backups (Last 7)</span>
+</div>
+
+{% if backups %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Backup File</th>
+        <th>Date & Time</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for backup in backups %}
+      <tr>
+        <td class="text-muted">{{ loop.index }}</td>
+        <td class="fw-bold text-accent">{{ backup }}</td>
+        <td class="text-muted">
+          {% set parts = backup.replace('backup_','').replace('.db','').split('_') %}
+          {% if parts|length >= 2 %}
+            {{ parts[0] }} at {{ parts[1].replace('-',':') }}
+          {% else %}
+            {{ backup }}
+          {% endif %}
+        </td>
+        <td>
+          {% if loop.first %}
+            <span class="badge green">Latest</span>
+          {% else %}
+            <span class="badge blue">Saved</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="icon">💾</div>
+  <p>No backups yet. Click "Create Backup Now" to create your first backup.</p>
+</div>
+{% endif %}
+
+<!-- Instructions -->
+<div class="alert-box warning" style="margin-top:20px;">
+  <h4>⚠️ Important — Read This</h4>
+  <ul style="display:block;">
+    <li style="margin-bottom:6px; font-size:12px;">✅ Backup is created automatically every day at 10 PM</li>
+    <li style="margin-bottom:6px; font-size:12px;">✅ Last 7 backups are kept automatically</li>
+    <li style="margin-bottom:6px; font-size:12px;">📁 Copy the <strong>backups</strong> folder to a USB drive weekly for extra safety</li>
+    <li style="margin-bottom:6px; font-size:12px;">❌ Never delete the <strong>instance</strong> folder</li>
+    <li style="font-size:12px;">❌ Never force close the app</li>
+  </ul>
+</div>
+
+{% endblock %}
